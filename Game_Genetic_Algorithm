@@ -1,0 +1,2478 @@
+import random
+from psychopy import core, visual,event
+from pyglet.window import key
+import numpy as np
+from scipy.spatial import distance
+import time
+import csv
+
+# Start time for script
+start_time = time.time()
+
+# Window to load the game
+win = visual.Window(size=(848, 480), units="pix",color=(0,0,0),colorSpace='rgb', rgb=(181,100,227))
+
+def screen_limits(win):
+    """Return screen coordinates left, top, right, bottom"""
+    return [
+        0 - win.size[0] / 2,
+        0 + win.size[1] / 2,
+        0 + win.size[0] / 2,
+        0 - win.size[1] / 2,
+    ]
+
+scr_size = screen_limits(win)
+
+"""" Elements for the game """
+
+# Checker Block Colors
+black = [-0.34, -1, -1]
+white = [ 1, 1, 1]
+
+# numpy arrays
+tex = np.array([[black, white], [white, black]])
+tex = np.tile(tex, (2, 2, 1))
+tex2 = np.array([[black, white]])
+tex2 = np.tile(tex, (1, 1, 1))
+
+# Place checker box
+stim = visual.ImageStim(win, image=tex,pos=(0,50), size=100)
+stim2 = visual.ImageStim(win, image=tex,pos=(100,50), size=100)
+stim3 = visual.ImageStim(win, image=tex,pos=(-100,50), size=100)
+stim4 = visual.ImageStim(win, image=tex2,pos=(+150,100), size=100)
+stim5 = visual.ImageStim(win, image=tex2,pos=(-150,0), size=100)
+
+# draw rectangle
+mygreenrect2 = visual.Rect(    win, width=100, height=200, lineColor="green", fillColor="green", autoDraw=True)
+mygreenrect3 = visual.Rect(    win, width=100, height=200, lineColor="green", fillColor="green", autoDraw=True)
+myline1 = visual.Rect(    win, width=1, height=200, lineColor="black", fillColor="black", autoDraw=True)
+myline2 = visual.Rect(    win, width=1, height=100, lineColor="black", fillColor="black", autoDraw=True)
+myline3 = visual.Rect(    win, width=1, height=50, lineColor="black", fillColor="black", autoDraw=True)
+myline4 = visual.Rect(    win, width=50, height=1, lineColor="black", fillColor="black", autoDraw=True)
+myline5 = visual.Rect(    win, width=50, height=1, lineColor="black", fillColor="black", autoDraw=True)
+myline6 = visual.Rect(    win, width=1, height=50, lineColor="black", fillColor="black", autoDraw=True)
+myline7 = visual.Rect(    win, width=1, height=50, lineColor="black", fillColor="black", autoDraw=True)
+myline8 = visual.Rect(    win, width=1, height=50, lineColor="black", fillColor="black", autoDraw=True)
+myline9 = visual.Rect(    win, width=1, height=100, lineColor="black", fillColor="black", autoDraw=True)
+myline10 = visual.Rect(    win, width=100, height=1, lineColor="black", fillColor="black", autoDraw=True)
+myline11 = visual.Rect(    win, width=100, height=1, lineColor="black", fillColor="black", autoDraw=True)
+myline12 = visual.Rect(    win, width=200, height=1, lineColor="black", fillColor="black", autoDraw=True)
+myline13 = visual.Rect(    win, width=202, height=1, lineColor="black", fillColor="black", autoDraw=True)
+myline14 = visual.Rect(    win, width=250, height=1, lineColor="black", fillColor="black", autoDraw=True)
+myline15 = visual.Rect(    win, width=250, height=1, lineColor="black", fillColor="black", autoDraw=True)
+myline16 = visual.Rect(    win, width=1, height=200, lineColor="black", fillColor="black", autoDraw=True)
+
+#Draw green rectangles
+mygreenrect2.pos = (-251,51)
+mygreenrect3.pos = (+251,49)
+
+#Draw lines
+myline1.pos = (-301,51)
+myline2.pos = (-201,101)
+myline3.pos = (-151,75)
+myline4.pos = (-175,50)
+myline5.pos = (+175,50)
+myline6.pos = (+151,25)
+myline7.pos = (-99,-25)
+myline8.pos = (+99,125)
+myline9.pos = (+201,0)
+myline10.pos = (-251,152)
+myline11.pos = (+251,-50)
+myline12.pos = (-200,-50)
+myline13.pos = (+200,151)
+myline14.pos = (-25,101)
+myline15.pos = (25,0)
+myline16.pos = (+301,51)
+
+#Stuff for ball
+ball_size = 15;
+img1 = visual.ImageStim(win, image="man.png",size=(ball_size,ball_size))
+img2 = visual.ImageStim(win, image="man.png",size=(ball_size,ball_size))
+img3 = visual.ImageStim(win, image="man.png",size=(ball_size,ball_size))
+img4 = visual.ImageStim(win, image="man.png",size=(ball_size,ball_size))
+
+#Draw background pattern
+stim.autoDraw = True
+stim2.autoDraw = True
+stim3.autoDraw = True
+stim4.autoDraw = True
+stim5.autoDraw = True
+
+# Number of players - Adding multiple players causes lag - to be solved
+Player_Number = 1
+# draw rectangle
+myrect = []
+for i in range(Player_Number):
+    myrect.append(visual.Rect(
+        win, width=15, height=15, lineColor="black", fillColor="red", autoDraw = True
+    ))
+
+# Player responses
+keys = key.KeyStateHandler()
+win.winHandle.push_handlers(keys)
+
+# Player speed - Sped up to get to a solution faster
+inc = 12
+
+# Enemy speed
+Speed = 3
+
+# Generation Number
+Gen = 100 
+# Starting generation number
+gen = 0
+
+# Number of total moves for this gen
+Move_Number = 500
+
+# Move number of the player
+move_number = 0
+
+#Autodraw Balls
+img1.autoDraw = True
+img2.autoDraw = True
+img3.autoDraw = True
+img4.autoDraw = True
+
+
+Node1 = (visual.Rect(
+        win, width=15, height=15, lineColor="black", fillColor="yellow", autoDraw = True
+    ))
+Node2 = (visual.Rect(
+        win, width=15, height=15, lineColor="black", fillColor="yellow", autoDraw = True
+    ))
+Node3 = (visual.Rect(
+        win, width=15, height=15, lineColor="black", fillColor="yellow", autoDraw = True
+    ))
+Node4 = (visual.Rect(
+        win, width=15, height=15, lineColor="black", fillColor="yellow", autoDraw = True
+    ))
+Node5 = (visual.Rect(
+        win, width=15, height=15, lineColor="black", fillColor="yellow", autoDraw = True
+    ))
+Node6 = (visual.Rect(
+        win, width=15, height=15, lineColor="black", fillColor="yellow", autoDraw = True
+    ))
+Node7  = (visual.Rect(
+        win, width=15, height=15, lineColor="black", fillColor="yellow", autoDraw = True
+    ))
+Node8  = (visual.Rect(
+        win, width=15, height=15, lineColor="black", fillColor="yellow", autoDraw = True
+    ))
+
+Node1.pos = (-250,50)
+Node2.pos = (-250,00)
+Node3.pos = (-200,00)
+Node4.pos = (-150,00)
+Node5.pos = (-75,50)
+Node6.pos = (0,50)
+Node7.pos = (75,50)
+Node8.pos = (150,100)
+
+#Draw  main rectangle
+for player_number in range(Player_Number):
+    myrect[player_number].pos = (-250,100)
+
+#Array to save moves
+def Random_Motion_Array():
+    Player_Move_Arr = []
+    for player_number in range(Player_Number):
+        Player_Move_Arr.append([])
+        
+    for i in range(Move_Number):
+        for player_number in range(Player_Number):
+            Player_Move_Arr[player_number].append(random.randint(1,4))
+    
+    return Player_Move_Arr
+   
+def Random_Motion_Array2():
+    Player_Number = 10
+    Player_Move_Arr = []
+    for player_number in range(Player_Number):
+        Player_Move_Arr.append([])
+    
+    for i in range(Move_Number):
+        for player_number in range(Player_Number):
+            Player_Move_Arr[player_number].append(random.randint(1,4))
+    
+    return Player_Move_Arr
+
+# Array to save positions
+Player_Pos = []
+for player_number in range(Player_Number):
+        Player_Pos.append([])
+    
+# positions
+positions = 150 * np.sin(np.linspace( 2 * np.pi,0, 150))
+
+
+collision = 12
+move_left = False
+move_right = False
+move_up = False
+move_down = False
+
+# Get random motion given the current state of the player
+def Random_Motion(up_collision,down_collision,left_collision,right_collision):
+            
+            if up_collision == False and down_collision== False and left_collision== False and right_collision== False :
+                a = random.choice([ 1,2,3,4])
+                
+            if up_collision == False and down_collision== True and left_collision== False and right_collision== False :
+                a = random.choice([ 1,3,4])
+             
+            if up_collision == False and down_collision== True and left_collision== True and right_collision== False :
+                a = random.choice([ 1,4])
+                                  
+            if up_collision == True and down_collision== True and left_collision== True and right_collision== False :
+                a = random.choice([ 4])
+                         
+      ##################################################          
+                 
+            if up_collision == False and down_collision== False and left_collision== False and right_collision== True :
+                a = random.choice([ 1,2,3])
+                
+            if up_collision == False and down_collision== False and left_collision== True and right_collision== True :
+                a = random.choice([ 1,2])
+             
+            if up_collision == False and down_collision== True and left_collision== True and right_collision== True :
+                a = random.choice([ 1])
+                 
+            if up_collision == True and down_collision== False and left_collision== False and right_collision== False :
+                a = random.choice([ 2,3,4])
+                 
+      ##################################################          
+            if up_collision == True and down_collision== True and left_collision== False and right_collision== False :
+                a = random.choice([ 3,4])
+                
+            if up_collision == True and down_collision== True and left_collision== True and right_collision== False :
+                a = random.choice([ 4])
+             
+            if up_collision == False and down_collision== False and left_collision== True and right_collision== False :
+                a = random.choice([ 1,2,4])
+                 
+            if up_collision == False and down_collision== True and left_collision== True and right_collision== False :
+                a = random.choice([ 1,4])
+                 
+      ##################################################          
+            if up_collision == True and down_collision== True and left_collision== True and right_collision== False :
+                a = random.choice([ 4])
+                
+            if up_collision == True and down_collision== False and left_collision== False and right_collision== True :
+                a = random.choice([ 2,3])
+             
+            if up_collision == False and down_collision== True and left_collision== False and right_collision== True :
+                a = random.choice([ 1,3])
+                 
+            if up_collision == True and down_collision== False and left_collision== True and right_collision== False :
+                a = random.choice([ 2,4])
+                 
+      ##################################################          
+            if up_collision == True and down_collision== False and left_collision== True and right_collision== True :
+                a = random.choice([ 2])
+                
+            if up_collision == True and down_collision== True and left_collision== False and right_collision== True :
+                a = random.choice([ 3])
+             
+            if up_collision == True and down_collision== True and left_collision== True and right_collision== True :
+                a = random.choice([0])
+                 
+      ##################################################          
+           
+            return a
+
+# Distance to finish line
+def Dist_To_Fin(myrect_x,myrect_y):
+    Fin = [250,100]
+    Dist = np.sqrt ((myrect_x - Fin[0]   )**2 +   ( myrect_y - Fin[1]    )**2   )
+    return Dist
+
+def Dist_To_Nodes(myrect_x,myrect_y,Node_Prio):
+    
+    Pos = (myrect_x,myrect_y)
+    Node1 = (-250,50)
+    Node2 = (-250,00)
+    Node3 = (-200,00)
+    Node4 = (-150,00)
+    Node5 = (-75,50)
+    Node6 = (0,50)
+    Node7 = (75,50)
+    Node8 = (150,100)
+    
+    Dist1 = distance.euclidean(Pos, Node1)
+    Dist2 = distance.euclidean(Pos, Node2)
+    Dist3 = distance.euclidean(Pos, Node3)
+    Dist4 = distance.euclidean(Pos, Node4)
+    Dist5 = distance.euclidean(Pos, Node5)
+    Dist6 = distance.euclidean(Pos, Node6)
+    Dist7 = distance.euclidean(Pos, Node7)
+    Dist8 = distance.euclidean(Pos, Node8)
+    
+    if Node_Prio == 0:
+       Dist = Dist1
+    if Node_Prio == 1:
+       Dist = Dist2
+    if Node_Prio == 2:
+       Dist = Dist3  
+    if Node_Prio == 3:
+       Dist = Dist4
+    if Node_Prio == 4:
+       Dist = Dist5
+    if Node_Prio == 5:
+       Dist = Dist6
+    if Node_Prio == 6:
+       Dist = Dist7
+    if Node_Prio == 7:
+       Dist = Dist8
+       
+    return Dist
+
+
+def Fitness(myrect_x,myrect_y,Node_Prio):
+    Dist_Nodes = Dist_To_Nodes(myrect_x,myrect_y,Node_Prio)
+    Dist_Fin = Dist_To_Fin(myrect_x,myrect_y)
+    Fitness = (Dist_Nodes) 
+    return Fitness
+
+
+# Best Arrays
+Best_1_Moves = []
+Best_2_Moves = []
+
+# Function to mutate given array
+def Mutate(moves_arr,typ):
+    moves_arr = moves_arr[0]
+    if typ == 1:
+        moves_ret_arr = []
+        for i in range(len(moves_arr)):
+            if i % 5 == 0:
+                moves_ret_arr.append((random.randint(1,4)))
+            else: 
+                moves_ret_arr.append(moves_arr[i])
+    
+    if typ == 2:
+        moves_ret_arr =[]
+        for i in range(len(moves_arr)):
+            if i % 7 == 0:
+                moves_ret_arr.append((random.randint(1,4)))
+            else: 
+                moves_ret_arr.append(moves_arr[i])
+    
+    if typ == 3:
+        moves_ret_arr =[]
+        for i in range(len(moves_arr)):
+            if i % 10 == 0:
+                moves_ret_arr.append((random.randint(1,4)))
+            else: 
+                moves_ret_arr.append(moves_arr[i])
+    
+                
+    return moves_ret_arr
+
+
+def Move_Array_Fitness(Best_1_Moves,Best_2_Moves):
+    Clone_1 = Best_1_Moves
+    Clone_2 = Best_2_Moves
+    Mutated_1 = Mutate(Best_1_Moves,1)
+    Mutated_2 = Mutate(Best_1_Moves,2)
+    Mutated_3 = Mutate(Best_1_Moves,3)
+    Mutated_4 = Mutate(Best_2_Moves,1)
+    Mutated_5 = Mutate(Best_2_Moves,2)
+    Mutated_6 = Mutate(Best_2_Moves,3)
+    
+    Random_1 = []
+    for i in range(Move_Number):
+        Random_1.append(random.randint(1,4))
+    
+    Random_2 = []
+    for i in range(Move_Number):
+        Random_2.append(random.randint(1,4))
+    
+    Random_3 = []
+    for i in range(Move_Number):
+        Random_3.append(random.randint(1,4))
+    
+    Random_4 = []
+    for i in range(Move_Number):
+        Random_4.append(random.randint(1,4))
+
+    # Save to player array
+    Player_Move_Arr = []
+    for player_number in range(10):
+        Player_Move_Arr.append([])
+
+    Player_Move_Arr[0] = Clone_1
+    Player_Move_Arr[1] = Clone_2
+    Player_Move_Arr[2].append(Mutated_1)
+    Player_Move_Arr[3].append(Mutated_2)
+    Player_Move_Arr[4].append(Mutated_3)
+    Player_Move_Arr[5].append(Mutated_4)
+    Player_Move_Arr[6].append(Mutated_3)
+    Player_Move_Arr[7].append(Mutated_2)
+    Player_Move_Arr[8].append(Mutated_5)
+    Player_Move_Arr[9].append(Mutated_6)
+    
+    return Player_Move_Arr
+
+Player_Move_Arr = Random_Motion_Array()
+
+def Move_list(gen,Moves,Node_Prio,Move_Number):
+    
+        for player_number in range(Player_Number):
+            myrect[player_number].pos = (-250,100)
+            
+        Player_Move_Arr = Moves
+        move_number = 0
+    
+        Actual_Moves = []
+        
+        for player_number in range(Player_Number):
+                        Actual_Moves.append([])
+                        
+        for pos in range(-140,140,+Speed):
+                if move_number < Move_Number  - 50 :
+                   
+                    Gen_Text = visual.TextStim(win, 'Prioritized Node Number = ' +str(gen+1),
+                                   color=(0, 0,0), colorSpace='rgb',pos=(0.0,-89.5))
+                    Gen_Text.draw()
+                    Move_Text = visual.TextStim(win, 'Move number = ' +str(move_number),
+                                   color=(0, 0,0), colorSpace='rgb',pos=(0.0,-109.5))
+                    Move_Text.draw()
+                    Move_Text2 = visual.TextStim(win, 'Maximum Moves = ' +str(Move_Number),
+                                   color=(0, 0,0), colorSpace='rgb',pos=(0.0,-129.5))
+                    Move_Text2.draw()
+                    
+                    """"  Collision Commands with enemy"""
+                    if abs(myrect[player_number].pos[0] - img1.pos[0]) < 12 and abs(myrect[player_number].pos[1] - img1.pos[1]) < 12 or abs(myrect[player_number].pos[0] - img2.pos[0]) < 12 and abs(myrect[player_number].pos[1] - img2.pos[1]) < 12 or abs(myrect[player_number].pos[0] - img3.pos[0]) < 12 and abs(myrect[player_number].pos[1] - img3.pos[1]) < 12 or abs(myrect[player_number].pos[0] - img4.pos[0]) < 12 and abs(myrect[player_number].pos[1] - img4.pos[1]) < 12:
+                        move_number += 1
+                    else:
+                        img1.pos = (pos, 13)
+                        img2.pos = (-pos, 38)
+                        img3.pos = (pos, 63)
+                        img4.pos = (-pos, 88)
+                        
+                    win.flip()
+                   
+                    """ Collision script for the player  """
+                    
+                    left_collision = False
+                    right_collision = False
+                    up_collision = False
+                    down_collision = False
+                    
+                    for player_number in range(Player_Number):
+                        
+                        if  myrect[player_number].pos[0] - myrect[player_number].width / 2 > scr_size[0] and myrect[player_number].pos[0] in range(-289,-200) and myrect[player_number].pos[1] in range(-50,150) or \
+                             myrect[player_number].pos[0] in range(-200,-100) and myrect[player_number].pos[1] in range(-50,50)  or \
+                                myrect[player_number].pos[0] in range(-139,+151) and myrect[player_number].pos[1] in range(0,100) or \
+                                 myrect[player_number].pos[0] in range(+112,+200) and myrect[player_number].pos[1] in range(50,150):
+                            left_collision = False           
+                        elif  myrect[player_number].pos[0] - myrect[player_number].width / 2 < scr_size[0] and myrect[player_number].pos[0] not in range(-289,-200) and myrect[player_number].pos[1] not in range(-50,150) or  \
+                            myrect[player_number].pos[0] not in range(-200,-100) and myrect[player_number].pos[1] not in range(-50,50)  or \
+                                myrect[player_number].pos[0] not in range(-139,+151) and myrect[player_number].pos[1] not in range(0,100) or \
+                                    myrect[player_number].pos[0] not in range(+112,+200) and myrect[player_number].pos[1] not in range(50,150):
+                            left_collision = True
+                           
+                        if  myrect[player_number].pos[0] + myrect[player_number].width / 2 < scr_size[2] and myrect[player_number].pos[0] in range(-301,-214) and myrect[player_number].pos[1] in range(-50,150) or \
+                            myrect[player_number].pos[0] in range(-214,-112) and myrect[player_number].pos[1] in range(-50,50)  or \
+                                myrect[player_number].pos[0] in range(-151,+139) and myrect[player_number].pos[1] in range(0,100) or \
+                                    myrect[player_number].pos[0] in range(+100,+200) and myrect[player_number].pos[1] in range(50,150):            
+                             right_collision = False          
+                        elif myrect[player_number].pos[0] + myrect[player_number].width / 2 > scr_size[2] and myrect[player_number].pos[0] not in range(-301,-214) and myrect[player_number].pos[1] not in range(-50,150) or \
+                            myrect[player_number].pos[0] not in range(-214,-112) and myrect[player_number].pos[1] not in range(-50,50)  or \
+                                myrect[player_number].pos[0] not in range(-151,+139) and myrect[player_number].pos[1] not in range(0,100) or \
+                                    myrect[player_number].pos[0] not in range(+100,+200) and myrect[player_number].pos[1] not in range(50,150):
+                            right_collision = True
+                           
+                        if  myrect[player_number].pos[1] + myrect[player_number].height / 2 < scr_size[1] and abs(myrect[player_number].pos[1] - myline10.pos[1]) > 12 and myrect[player_number].pos[0] in range(-301,-201) or \
+                            myrect[player_number].pos[0] in range(-201,-101) and myrect[player_number].pos[1] in range(-50,38) or \
+                                myrect[player_number].pos[0] in range(-151,+151) and myrect[player_number].pos[1] in range(0,88) or \
+                                    myrect[player_number].pos[0] in range(+100,+200) and myrect[player_number].pos[1] in range(36,138):
+                            up_collision = False
+                        elif  myrect[player_number].pos[1] + myrect[player_number].height / 2 > scr_size[1] and abs(myrect[player_number].pos[1] - myline10.pos[1]) < 12 and myrect[player_number].pos[0] not in range(-301,-201) or \
+                            myrect[player_number].pos[0] not in range(-201,-101) and myrect[player_number].pos[1] not in range(-50,38) or \
+                                myrect[player_number].pos[0] not in range(-151,+151) and myrect[player_number].pos[1] not in range(0,88) or \
+                                    myrect[player_number].pos[0] not in range(+100,+200) and myrect[player_number].pos[1] not in range(36,138):
+                            up_collision = True          
+                           
+                        if  myrect[player_number].pos[1] - myrect[player_number].height / 2 > scr_size[3] and myrect[player_number].pos[0] in range(-303,-201) and myrect[player_number].pos[1] in range(-38,150) or \
+                            myrect[player_number].pos[0] in range(-201,-101) and myrect[player_number].pos[1] in range(-38,50) or \
+                                myrect[player_number].pos[0] in range(-151,+151) and myrect[player_number].pos[1] in range(12,100) or \
+                                    myrect[player_number].pos[0] in range(+100,+200) and myrect[player_number].pos[1] in range(62,150):
+                            down_collision = False
+                        elif myrect[player_number].pos[1] - myrect[player_number].height / 2 < scr_size[3] and myrect[player_number].pos[0] not in range(-303,-201) and myrect[player_number].pos[1] not in range(-38,150) or \
+                            myrect[player_number].pos[0] not in range(-201,-101) and myrect[player_number].pos[1] not in range(-38,50) or \
+                                myrect[player_number].pos[0] not in range(-151,+151) and myrect[player_number].pos[1] not in range(12,100) or\
+                                    myrect[player_number].pos[0] not in range(+100,+200) and myrect[player_number].pos[1] not in range(62,150):
+                            down_collision = True
+                        
+                        """ Moves from Array """
+                        
+                        if Player_Move_Arr[player_number][move_number] == 1: 
+                            
+                            if up_collision == True or down_collision == True or left_collision == True or right_collision == True  or up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                                a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                                
+                                Actual_Moves[player_number].append(a)
+                                if a == 1:
+                                     myrect[player_number].pos -= (inc, 0)
+                                     move_number += 1
+                                     Player_Pos[player_number].append(myrect[player_number].pos)
+                                     
+                                if a == 2:
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 3:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 4:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                                if a == 0:
+                                    myrect[player_number].pos = Player_Pos[player_number][-5]
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                            else:
+                                    myrect[player_number].pos -= (inc, 0)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    Actual_Moves[player_number].append(Player_Move_Arr[player_number][move_number])
+                                    
+                                    
+                                    
+                                    
+                                    
+                        if Player_Move_Arr[player_number][move_number] == 2:
+                            if up_collision == True or down_collision == True or left_collision == True or right_collision == True  or up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                                a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                                Actual_Moves[player_number].append(a)
+                                if a == 1:
+                                     myrect[player_number].pos -= (inc, 0)
+                                     move_number += 1
+                                     Player_Pos[player_number].append(myrect[player_number].pos)
+                                     
+                                if a == 2:
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 3:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 4:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                                if a == 0:
+                                    myrect[player_number].pos = Player_Pos[player_number][-5]
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                            else:
+                            
+                            
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Actual_Moves[player_number].append(Player_Move_Arr[player_number][move_number])
+                            
+                        if Player_Move_Arr[player_number][move_number] == 3:
+                            if up_collision == True or down_collision == True or left_collision == True or right_collision == True  or up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                                a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                                Actual_Moves[player_number].append(a)
+                                if a == 1:
+                                     myrect[player_number].pos -= (inc, 0)
+                                     move_number += 1
+                                     Player_Pos[player_number].append(myrect[player_number].pos)
+                                     
+                                if a == 2:
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 3:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 4:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                                if a == 0:
+                                    myrect[player_number].pos = Player_Pos[player_number][-5]
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                            else:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    Actual_Moves[player_number].append(Player_Move_Arr[player_number][move_number])
+                            
+                        if Player_Move_Arr[player_number][move_number] == 4:
+                            if up_collision == True or down_collision == True or left_collision == True or right_collision == True  or up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                                a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                                Actual_Moves[player_number].append(a)
+                                if a == 1:
+                                     myrect[player_number].pos -= (inc, 0)
+                                     move_number += 1
+                                     Player_Pos[player_number].append(myrect[player_number].pos)
+                                     
+                                if a == 2:
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 3:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 4:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                                if a == 0:
+                                    myrect[player_number].pos = Player_Pos[player_number][-5]
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                            else:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    Actual_Moves[player_number].append(Player_Move_Arr[player_number][move_number])
+                                 
+                        """   Random Motion 
+                        a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                        if a == 1:
+                             myrect[player_number].pos -= (inc, 0)
+                             move_number += 1
+                        if a == 2:
+                            myrect[player_number].pos += (inc, 0) 
+                            move_number += 1
+                        if a == 3:
+                            myrect[player_number].pos += (0, inc)  
+                            move_number += 1
+                        if a == 4:
+                            myrect[player_number].pos -= (0, inc)
+                            move_number += 1
+                        if a == 0:
+                            myrect[player_number].pos = (-250,100)
+                            move_number += 1
+                       # print("Down collision = " +str(down_collision))    
+                      #  print("Left collision = " +str(left_collision))  
+                      #  print("Right collision = " +str(right_collision))  
+                      #  print("Up collision = " +str(up_collision))  
+                      #  print(" ")
+                        """  
+                        
+                        """" Better end  """
+                        
+                        """ Movement Commands Start"""
+                    
+                        if keys[key.LEFT] and left_collision == False:
+                            myrect[player_number].pos -= (inc, 0)
+                        
+                        if keys[key.RIGHT] and right_collision == False:
+                            myrect[player_number].pos += (inc, 0)
+                        
+                        if keys[key.UP] and up_collision == False:
+                            myrect[player_number].pos += (0, inc)
+                        
+                        if keys[key.DOWN] and down_collision == False:
+                            myrect[player_number].pos -= (0, inc)
+                  
+                        """" Exit command  """    
+                            
+                        if keys[key.ESCAPE]:
+                            win.close()
+                            core.quit()
+                
+                        if  myrect[player_number].pos[0] in range(+198,+300) and myrect[player_number].pos[1] in range(50,150):
+                            win.close()
+                            core.quit()
+                                
+                else:
+                    
+                        Fin_pos = []
+                        Fin_movements = Player_Move_Arr
+                        
+                        for player_number in range(Player_Number):
+                            Fin_pos.append([myrect[player_number].pos[0],myrect[player_number].pos[1]])
+                        Fitness_all = []
+                        for i in range(Player_Number):
+                            Fitness_all.append(Fitness(Fin_pos[i][0], Fin_pos[i][1],Node_Prio   )    )
+                     
+                        # Arrange in ascending order and save first two
+                        Fitness_2 = np.copy(Fitness_all)
+                        Fitness_2.sort()
+                        Best_1_pos = np.where( Fitness_all == Fitness_2[0]   )
+                        Best_1_Moves = Fin_movements[Best_1_pos[0][0]]
+                        gen += 1
+                        
+                        
+                    
+        for pos in range(140,-140,-Speed):
+                if move_number < Move_Number  - 50:
+                    
+                    Gen_Text = visual.TextStim(win, 'Prioritized Node Number = ' +str(gen+1),
+                                   color=(0, 0,0), colorSpace='rgb',pos=(0.0,-89.5))
+                    Gen_Text.draw()
+                  
+                    Move_Text = visual.TextStim(win, 'Move number = ' +str(move_number),
+                                   color=(0, 0,0), colorSpace='rgb',pos=(0.0,-109.5))
+                    Move_Text.draw()
+                    
+                    Move_Text2 = visual.TextStim(win, 'Maximum Moves = ' +str(Move_Number),
+                                   color=(0, 0,0), colorSpace='rgb',pos=(0.0,-129.5))
+                    Move_Text2.draw()
+                    
+                     #Collision Commands
+                    if abs(myrect[player_number].pos[0] - img1.pos[0]) < 12 and abs(myrect[player_number].pos[1] - img1.pos[1]) < 12 or abs(myrect[player_number].pos[0] - img2.pos[0]) < 12 and abs(myrect[player_number].pos[1] - img2.pos[1]) < 12 or abs(myrect[player_number].pos[0] - img3.pos[0]) < 12 and abs(myrect[player_number].pos[1] - img3.pos[1]) < 12 or abs(myrect[player_number].pos[0] - img4.pos[0]) < 12 and abs(myrect[player_number].pos[1] - img4.pos[1]) < 12:
+                        
+                        move_number += 1
+                        
+                    else:
+                    
+                        img1.pos = (pos, 13)
+                        img2.pos = (-pos, 38)
+                        img3.pos = (pos, 63)
+                        img4.pos = (-pos, 88)
+                            
+                
+                        win.flip()
+                   
+                    
+                    left_collision = False
+                    right_collision = False
+                    up_collision = False
+                    down_collision = False
+                    
+                    for player_number in range(Player_Number):
+                        if  myrect[player_number].pos[0] - myrect[player_number].width / 2 > scr_size[0] and myrect[player_number].pos[0] in range(-289,-200) and myrect[player_number].pos[1] in range(-50,150) or \
+                             myrect[player_number].pos[0] in range(-200,-100) and myrect[player_number].pos[1] in range(-50,50)  or \
+                                myrect[player_number].pos[0] in range(-139,+151) and myrect[player_number].pos[1] in range(0,100) or \
+                                 myrect[player_number].pos[0] in range(+112,+200) and myrect[player_number].pos[1] in range(50,150):
+                            left_collision = False           
+                        elif  myrect[player_number].pos[0] - myrect[player_number].width / 2 < scr_size[0] and myrect[player_number].pos[0] not in range(-289,-200) and myrect[player_number].pos[1] not in range(-50,150) or  \
+                            myrect[player_number].pos[0] not in range(-200,-100) and myrect[player_number].pos[1] not in range(-50,50)  or \
+                                myrect[player_number].pos[0] not in range(-139,+151) and myrect[player_number].pos[1] not in range(0,100) or \
+                                    myrect[player_number].pos[0] not in range(+112,+200) and myrect[player_number].pos[1] not in range(50,150):
+                            left_collision = True
+                           
+                        if  myrect[player_number].pos[0] + myrect[player_number].width / 2 < scr_size[2] and myrect[player_number].pos[0] in range(-301,-214) and myrect[player_number].pos[1] in range(-50,150) or \
+                            myrect[player_number].pos[0] in range(-214,-112) and myrect[player_number].pos[1] in range(-50,50)  or \
+                                myrect[player_number].pos[0] in range(-151,+139) and myrect[player_number].pos[1] in range(0,100) or \
+                                    myrect[player_number].pos[0] in range(+100,+200) and myrect[player_number].pos[1] in range(50,150):            
+                             right_collision = False          
+                        elif myrect[player_number].pos[0] + myrect[player_number].width / 2 > scr_size[2] and myrect[player_number].pos[0] not in range(-301,-214) and myrect[player_number].pos[1] not in range(-50,150) or \
+                            myrect[player_number].pos[0] not in range(-214,-112) and myrect[player_number].pos[1] not in range(-50,50)  or \
+                                myrect[player_number].pos[0] not in range(-151,+139) and myrect[player_number].pos[1] not in range(0,100) or \
+                                    myrect[player_number].pos[0] not in range(+100,+200) and myrect[player_number].pos[1] not in range(50,150):
+                            right_collision = True
+                           
+                        if  myrect[player_number].pos[1] + myrect[player_number].height / 2 < scr_size[1] and abs(myrect[player_number].pos[1] - myline10.pos[1]) > 12 and myrect[player_number].pos[0] in range(-301,-201) or \
+                            myrect[player_number].pos[0] in range(-201,-101) and myrect[player_number].pos[1] in range(-50,38) or \
+                                myrect[player_number].pos[0] in range(-151,+151) and myrect[player_number].pos[1] in range(0,88) or \
+                                    myrect[player_number].pos[0] in range(+100,+200) and myrect[player_number].pos[1] in range(36,138):
+                            up_collision = False
+                        elif  myrect[player_number].pos[1] + myrect[player_number].height / 2 > scr_size[1] and abs(myrect[player_number].pos[1] - myline10.pos[1]) < 12 and myrect[player_number].pos[0] not in range(-301,-201) or \
+                            myrect[player_number].pos[0] not in range(-201,-101) and myrect[player_number].pos[1] not in range(-50,38) or \
+                                myrect[player_number].pos[0] not in range(-151,+151) and myrect[player_number].pos[1] not in range(0,88) or \
+                                    myrect[player_number].pos[0] not in range(+100,+200) and myrect[player_number].pos[1] not in range(36,138):
+                            up_collision = True          
+                           
+                        if  myrect[player_number].pos[1] - myrect[player_number].height / 2 > scr_size[3] and myrect[player_number].pos[0] in range(-303,-201) and myrect[player_number].pos[1] in range(-38,150) or \
+                            myrect[player_number].pos[0] in range(-201,-101) and myrect[player_number].pos[1] in range(-38,50) or \
+                                myrect[player_number].pos[0] in range(-151,+151) and myrect[player_number].pos[1] in range(12,100) or \
+                                    myrect[player_number].pos[0] in range(+100,+200) and myrect[player_number].pos[1] in range(62,150):
+                            down_collision = False
+                        elif myrect[player_number].pos[1] - myrect[player_number].height / 2 < scr_size[3] and myrect[player_number].pos[0] not in range(-303,-201) and myrect[player_number].pos[1] not in range(-38,150) or \
+                            myrect[player_number].pos[0] not in range(-201,-101) and myrect[player_number].pos[1] not in range(-38,50) or \
+                                myrect[player_number].pos[0] not in range(-151,+151) and myrect[player_number].pos[1] not in range(12,100) or\
+                                    myrect[player_number].pos[0] not in range(+100,+200) and myrect[player_number].pos[1] not in range(62,150):
+                            down_collision = True
+                            
+                       
+                        if up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                            myrect[player_number].pos = Player_Pos[player_number][-1]
+                        
+                        if Player_Move_Arr[player_number][move_number] == 1: 
+                            
+                            if up_collision == True or down_collision == True or left_collision == True or right_collision == True  or up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                                a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                                
+                                Actual_Moves[player_number].append(a)
+                                if a == 1:
+                                     myrect[player_number].pos -= (inc, 0)
+                                     move_number += 1
+                                     Player_Pos[player_number].append(myrect[player_number].pos)
+                                     
+                                if a == 2:
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 3:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 4:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                                if a == 0:
+                                    myrect[player_number].pos = Player_Pos[player_number][-5]
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                            else:
+                                    myrect[player_number].pos -= (inc, 0)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    Actual_Moves[player_number].append(Player_Move_Arr[player_number][move_number])
+                                    
+                                    
+                                    
+                                    
+                                    
+                        if Player_Move_Arr[player_number][move_number] == 2:
+                            if up_collision == True or down_collision == True or left_collision == True or right_collision == True  or up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                                a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                                Actual_Moves[player_number].append(a)
+                                if a == 1:
+                                     myrect[player_number].pos -= (inc, 0)
+                                     move_number += 1
+                                     Player_Pos[player_number].append(myrect[player_number].pos)
+                                     
+                                if a == 2:
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 3:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 4:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                                if a == 0:
+                                    myrect[player_number].pos = Player_Pos[player_number][-5]
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                            else:
+                            
+                            
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Actual_Moves[player_number].append(Player_Move_Arr[player_number][move_number])
+                            
+                        if Player_Move_Arr[player_number][move_number] == 3:
+                            if up_collision == True or down_collision == True or left_collision == True or right_collision == True  or up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                                a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                                Actual_Moves[player_number].append(a)
+                                if a == 1:
+                                     myrect[player_number].pos -= (inc, 0)
+                                     move_number += 1
+                                     Player_Pos[player_number].append(myrect[player_number].pos)
+                                     
+                                if a == 2:
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 3:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 4:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                                if a == 0:
+                                    myrect[player_number].pos = Player_Pos[player_number][-5]
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                            else:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    Actual_Moves[player_number].append(Player_Move_Arr[player_number][move_number])
+                            
+                        if Player_Move_Arr[player_number][move_number] == 4:
+                            if up_collision == True or down_collision == True or left_collision == True or right_collision == True  or up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                                a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                                Actual_Moves[player_number].append(a)
+                                if a == 1:
+                                     myrect[player_number].pos -= (inc, 0)
+                                     move_number += 1
+                                     Player_Pos[player_number].append(myrect[player_number].pos)
+                                     
+                                if a == 2:
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 3:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 4:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                                if a == 0:
+                                    myrect[player_number].pos = Player_Pos[player_number][-5]
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                            else:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    Actual_Moves[player_number].append(Player_Move_Arr[player_number][move_number])
+                        
+                        """   Random Motion 
+                        a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                        if a == 1:
+                             myrect[player_number].pos -= (inc, 0)
+                             move_number += 1
+                        if a == 2:
+                            myrect[player_number].pos += (inc, 0) 
+                            move_number += 1
+                        if a == 3:
+                            myrect[player_number].pos += (0, inc)  
+                            move_number += 1
+                        if a == 4:
+                            myrect[player_number].pos -= (0, inc)
+                            move_number += 1
+                        if a == 0:
+                            myrect[player_number].pos = (-250,100)
+                            move_number += 1
+                       # print("Down collision = " +str(down_collision))    
+                      #  print("Left collision = " +str(left_collision))  
+                      #  print("Right collision = " +str(right_collision))  
+                      #  print("Up collision = " +str(up_collision))  
+                      #  print(" ")
+                        """  
+                        
+                        """" Better end  """
+                        
+                        """ Movement Commands Start"""
+                    
+                        if keys[key.LEFT] and left_collision == False:
+                            myrect[player_number].pos -= (inc, 0)
+                        
+                        if keys[key.RIGHT] and right_collision == False:
+                            myrect[player_number].pos += (inc, 0)
+                        
+                            
+                        if keys[key.UP] and up_collision == False:
+                            myrect[player_number].pos += (0, inc)
+                        
+                        
+                        if keys[key.DOWN] and down_collision == False:
+                            myrect[player_number].pos -= (0, inc)
+                  
+                        
+                        """" Exit command  """    
+                            
+                        if keys[key.ESCAPE]:
+                            win.close()
+                            core.quit()
+                
+                        if  myrect[player_number].pos[0] in range(+198,+300) and myrect[player_number].pos[1] in range(50,150):
+                            win.close()
+                            core.quit()
+                                
+                else:
+                    
+                        Fin_pos = []
+                        Fin_movements = Player_Move_Arr
+                        
+                        for player_number in range(Player_Number):
+                            Fin_pos.append([myrect[player_number].pos[0],myrect[player_number].pos[1]])
+                        Fitness_all = []
+                        for i in range(Player_Number):
+                            Fitness_all.append(Fitness(Fin_pos[i][0], Fin_pos[i][1] ,Node_Prio    )    )
+                            
+                        Fitness_2 = np.copy(Fitness_all)
+                        Fitness_2.sort()
+                        Best_1_pos = np.where( Fitness_all == Fitness_2[0]   )
+                        Best_1_Moves = Fin_movements[Best_1_pos[0][0]]
+                        gen += 1
+        
+                        
+        for pos in range(-140,140,+Speed):
+                if move_number < Move_Number  - 50 :
+                   
+                    Gen_Text = visual.TextStim(win, 'Prioritized Node Number = ' +str(gen+1),
+                                   color=(0, 0,0), colorSpace='rgb',pos=(0.0,-89.5))
+                    Gen_Text.draw()
+                    Move_Text = visual.TextStim(win, 'Move number = ' +str(move_number),
+                                   color=(0, 0,0), colorSpace='rgb',pos=(0.0,-109.5))
+                    Move_Text.draw()
+                    Move_Text2 = visual.TextStim(win, 'Maximum Moves = ' +str(Move_Number),
+                                   color=(0, 0,0), colorSpace='rgb',pos=(0.0,-129.5))
+                    Move_Text2.draw()
+                    
+                    """"  Collision Commands with enemy"""
+                    if abs(myrect[player_number].pos[0] - img1.pos[0]) < 12 and abs(myrect[player_number].pos[1] - img1.pos[1]) < 12 or abs(myrect[player_number].pos[0] - img2.pos[0]) < 12 and abs(myrect[player_number].pos[1] - img2.pos[1]) < 12 or abs(myrect[player_number].pos[0] - img3.pos[0]) < 12 and abs(myrect[player_number].pos[1] - img3.pos[1]) < 12 or abs(myrect[player_number].pos[0] - img4.pos[0]) < 12 and abs(myrect[player_number].pos[1] - img4.pos[1]) < 12:
+                        move_number += 1
+                    else:
+                        img1.pos = (pos, 13)
+                        img2.pos = (-pos, 38)
+                        img3.pos = (pos, 63)
+                        img4.pos = (-pos, 88)
+                        
+                    win.flip()
+                   
+                    """ Collision script for the player  """
+                    
+                    left_collision = False
+                    right_collision = False
+                    up_collision = False
+                    down_collision = False
+                    
+                    for player_number in range(Player_Number):
+                        
+                        if  myrect[player_number].pos[0] - myrect[player_number].width / 2 > scr_size[0] and myrect[player_number].pos[0] in range(-289,-200) and myrect[player_number].pos[1] in range(-50,150) or \
+                             myrect[player_number].pos[0] in range(-200,-100) and myrect[player_number].pos[1] in range(-50,50)  or \
+                                myrect[player_number].pos[0] in range(-139,+151) and myrect[player_number].pos[1] in range(0,100) or \
+                                 myrect[player_number].pos[0] in range(+112,+200) and myrect[player_number].pos[1] in range(50,150):
+                            left_collision = False           
+                        elif  myrect[player_number].pos[0] - myrect[player_number].width / 2 < scr_size[0] and myrect[player_number].pos[0] not in range(-289,-200) and myrect[player_number].pos[1] not in range(-50,150) or  \
+                            myrect[player_number].pos[0] not in range(-200,-100) and myrect[player_number].pos[1] not in range(-50,50)  or \
+                                myrect[player_number].pos[0] not in range(-139,+151) and myrect[player_number].pos[1] not in range(0,100) or \
+                                    myrect[player_number].pos[0] not in range(+112,+200) and myrect[player_number].pos[1] not in range(50,150):
+                            left_collision = True
+                           
+                        if  myrect[player_number].pos[0] + myrect[player_number].width / 2 < scr_size[2] and myrect[player_number].pos[0] in range(-301,-214) and myrect[player_number].pos[1] in range(-50,150) or \
+                            myrect[player_number].pos[0] in range(-214,-112) and myrect[player_number].pos[1] in range(-50,50)  or \
+                                myrect[player_number].pos[0] in range(-151,+139) and myrect[player_number].pos[1] in range(0,100) or \
+                                    myrect[player_number].pos[0] in range(+100,+200) and myrect[player_number].pos[1] in range(50,150):            
+                             right_collision = False          
+                        elif myrect[player_number].pos[0] + myrect[player_number].width / 2 > scr_size[2] and myrect[player_number].pos[0] not in range(-301,-214) and myrect[player_number].pos[1] not in range(-50,150) or \
+                            myrect[player_number].pos[0] not in range(-214,-112) and myrect[player_number].pos[1] not in range(-50,50)  or \
+                                myrect[player_number].pos[0] not in range(-151,+139) and myrect[player_number].pos[1] not in range(0,100) or \
+                                    myrect[player_number].pos[0] not in range(+100,+200) and myrect[player_number].pos[1] not in range(50,150):
+                            right_collision = True
+                           
+                        if  myrect[player_number].pos[1] + myrect[player_number].height / 2 < scr_size[1] and abs(myrect[player_number].pos[1] - myline10.pos[1]) > 12 and myrect[player_number].pos[0] in range(-301,-201) or \
+                            myrect[player_number].pos[0] in range(-201,-101) and myrect[player_number].pos[1] in range(-50,38) or \
+                                myrect[player_number].pos[0] in range(-151,+151) and myrect[player_number].pos[1] in range(0,88) or \
+                                    myrect[player_number].pos[0] in range(+100,+200) and myrect[player_number].pos[1] in range(36,138):
+                            up_collision = False
+                        elif  myrect[player_number].pos[1] + myrect[player_number].height / 2 > scr_size[1] and abs(myrect[player_number].pos[1] - myline10.pos[1]) < 12 and myrect[player_number].pos[0] not in range(-301,-201) or \
+                            myrect[player_number].pos[0] not in range(-201,-101) and myrect[player_number].pos[1] not in range(-50,38) or \
+                                myrect[player_number].pos[0] not in range(-151,+151) and myrect[player_number].pos[1] not in range(0,88) or \
+                                    myrect[player_number].pos[0] not in range(+100,+200) and myrect[player_number].pos[1] not in range(36,138):
+                            up_collision = True          
+                           
+                        if  myrect[player_number].pos[1] - myrect[player_number].height / 2 > scr_size[3] and myrect[player_number].pos[0] in range(-303,-201) and myrect[player_number].pos[1] in range(-38,150) or \
+                            myrect[player_number].pos[0] in range(-201,-101) and myrect[player_number].pos[1] in range(-38,50) or \
+                                myrect[player_number].pos[0] in range(-151,+151) and myrect[player_number].pos[1] in range(12,100) or \
+                                    myrect[player_number].pos[0] in range(+100,+200) and myrect[player_number].pos[1] in range(62,150):
+                            down_collision = False
+                        elif myrect[player_number].pos[1] - myrect[player_number].height / 2 < scr_size[3] and myrect[player_number].pos[0] not in range(-303,-201) and myrect[player_number].pos[1] not in range(-38,150) or \
+                            myrect[player_number].pos[0] not in range(-201,-101) and myrect[player_number].pos[1] not in range(-38,50) or \
+                                myrect[player_number].pos[0] not in range(-151,+151) and myrect[player_number].pos[1] not in range(12,100) or\
+                                    myrect[player_number].pos[0] not in range(+100,+200) and myrect[player_number].pos[1] not in range(62,150):
+                            down_collision = True
+                        
+                        """ Moves from Array """
+                        
+                        if Player_Move_Arr[player_number][move_number] == 1: 
+                            
+                            if up_collision == True or down_collision == True or left_collision == True or right_collision == True  or up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                                a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                                
+                                Actual_Moves[player_number].append(a)
+                                if a == 1:
+                                     myrect[player_number].pos -= (inc, 0)
+                                     move_number += 1
+                                     Player_Pos[player_number].append(myrect[player_number].pos)
+                                     
+                                if a == 2:
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 3:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 4:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                                if a == 0:
+                                    myrect[player_number].pos = Player_Pos[player_number][-5]
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                            else:
+                                    myrect[player_number].pos -= (inc, 0)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    Actual_Moves[player_number].append(Player_Move_Arr[player_number][move_number])
+                                    
+                                    
+                                    
+                                    
+                                    
+                        if Player_Move_Arr[player_number][move_number] == 2:
+                            if up_collision == True or down_collision == True or left_collision == True or right_collision == True  or up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                                a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                                Actual_Moves[player_number].append(a)
+                                if a == 1:
+                                     myrect[player_number].pos -= (inc, 0)
+                                     move_number += 1
+                                     Player_Pos[player_number].append(myrect[player_number].pos)
+                                     
+                                if a == 2:
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 3:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 4:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                                if a == 0:
+                                    myrect[player_number].pos = Player_Pos[player_number][-5]
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                            else:
+                            
+                            
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Actual_Moves[player_number].append(Player_Move_Arr[player_number][move_number])
+                            
+                        if Player_Move_Arr[player_number][move_number] == 3:
+                            if up_collision == True or down_collision == True or left_collision == True or right_collision == True  or up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                                a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                                Actual_Moves[player_number].append(a)
+                                if a == 1:
+                                     myrect[player_number].pos -= (inc, 0)
+                                     move_number += 1
+                                     Player_Pos[player_number].append(myrect[player_number].pos)
+                                     
+                                if a == 2:
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 3:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 4:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                                if a == 0:
+                                    myrect[player_number].pos = Player_Pos[player_number][-5]
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                            else:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    Actual_Moves[player_number].append(Player_Move_Arr[player_number][move_number])
+                            
+                        if Player_Move_Arr[player_number][move_number] == 4:
+                            if up_collision == True or down_collision == True or left_collision == True or right_collision == True  or up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                                a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                                Actual_Moves[player_number].append(a)
+                                if a == 1:
+                                     myrect[player_number].pos -= (inc, 0)
+                                     move_number += 1
+                                     Player_Pos[player_number].append(myrect[player_number].pos)
+                                     
+                                if a == 2:
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 3:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 4:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                                if a == 0:
+                                    myrect[player_number].pos = Player_Pos[player_number][-5]
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                            else:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    Actual_Moves[player_number].append(Player_Move_Arr[player_number][move_number])
+                                 
+                        """   Random Motion 
+                        a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                        if a == 1:
+                             myrect[player_number].pos -= (inc, 0)
+                             move_number += 1
+                        if a == 2:
+                            myrect[player_number].pos += (inc, 0) 
+                            move_number += 1
+                        if a == 3:
+                            myrect[player_number].pos += (0, inc)  
+                            move_number += 1
+                        if a == 4:
+                            myrect[player_number].pos -= (0, inc)
+                            move_number += 1
+                        if a == 0:
+                            myrect[player_number].pos = (-250,100)
+                            move_number += 1
+                       # print("Down collision = " +str(down_collision))    
+                      #  print("Left collision = " +str(left_collision))  
+                      #  print("Right collision = " +str(right_collision))  
+                      #  print("Up collision = " +str(up_collision))  
+                      #  print(" ")
+                        """  
+                        
+                        """" Better end  """
+                        
+                        """ Movement Commands Start"""
+                    
+                        if keys[key.LEFT] and left_collision == False:
+                            myrect[player_number].pos -= (inc, 0)
+                        
+                        if keys[key.RIGHT] and right_collision == False:
+                            myrect[player_number].pos += (inc, 0)
+                        
+                        if keys[key.UP] and up_collision == False:
+                            myrect[player_number].pos += (0, inc)
+                        
+                        if keys[key.DOWN] and down_collision == False:
+                            myrect[player_number].pos -= (0, inc)
+                  
+                        """" Exit command  """    
+                            
+                        if keys[key.ESCAPE]:
+                            win.close()
+                            core.quit()
+                
+                        if  myrect[player_number].pos[0] in range(+198,+300) and myrect[player_number].pos[1] in range(50,150):
+                            win.close()
+                            core.quit()
+                                
+                else:
+                    
+                        Fin_pos = []
+                        Fin_movements = Player_Move_Arr
+                        
+                        for player_number in range(Player_Number):
+                            Fin_pos.append([myrect[player_number].pos[0],myrect[player_number].pos[1]])
+                        Fitness_all = []
+                        for i in range(Player_Number):
+                            Fitness_all.append(Fitness(Fin_pos[i][0], Fin_pos[i][1],Node_Prio   )    )
+                     
+                        # Arrange in ascending order and save first two
+                        Fitness_2 = np.copy(Fitness_all)
+                        Fitness_2.sort()
+                        Best_1_pos = np.where( Fitness_all == Fitness_2[0]   )
+                        Best_1_Moves = Fin_movements[Best_1_pos[0][0]]
+                        gen += 1
+                        
+                        
+                    
+        for pos in range(140,-140,-Speed):
+                if move_number < Move_Number  - 50:
+                    
+                    Gen_Text = visual.TextStim(win, 'Prioritized Node Number = ' +str(gen+1),
+                                   color=(0, 0,0), colorSpace='rgb',pos=(0.0,-89.5))
+                    Gen_Text.draw()
+                  
+                    Move_Text = visual.TextStim(win, 'Move number = ' +str(move_number),
+                                   color=(0, 0,0), colorSpace='rgb',pos=(0.0,-109.5))
+                    Move_Text.draw()
+                    
+                    Move_Text2 = visual.TextStim(win, 'Maximum Moves = ' +str(Move_Number),
+                                   color=(0, 0,0), colorSpace='rgb',pos=(0.0,-129.5))
+                    Move_Text2.draw()
+                    
+                     #Collision Commands
+                    if abs(myrect[player_number].pos[0] - img1.pos[0]) < 12 and abs(myrect[player_number].pos[1] - img1.pos[1]) < 12 or abs(myrect[player_number].pos[0] - img2.pos[0]) < 12 and abs(myrect[player_number].pos[1] - img2.pos[1]) < 12 or abs(myrect[player_number].pos[0] - img3.pos[0]) < 12 and abs(myrect[player_number].pos[1] - img3.pos[1]) < 12 or abs(myrect[player_number].pos[0] - img4.pos[0]) < 12 and abs(myrect[player_number].pos[1] - img4.pos[1]) < 12:
+                        
+                        move_number += 1
+                        
+                    else:
+                    
+                        img1.pos = (pos, 13)
+                        img2.pos = (-pos, 38)
+                        img3.pos = (pos, 63)
+                        img4.pos = (-pos, 88)
+                            
+                
+                        win.flip()
+                   
+                    
+                    left_collision = False
+                    right_collision = False
+                    up_collision = False
+                    down_collision = False
+                    
+                    for player_number in range(Player_Number):
+                        if  myrect[player_number].pos[0] - myrect[player_number].width / 2 > scr_size[0] and myrect[player_number].pos[0] in range(-289,-200) and myrect[player_number].pos[1] in range(-50,150) or \
+                             myrect[player_number].pos[0] in range(-200,-100) and myrect[player_number].pos[1] in range(-50,50)  or \
+                                myrect[player_number].pos[0] in range(-139,+151) and myrect[player_number].pos[1] in range(0,100) or \
+                                 myrect[player_number].pos[0] in range(+112,+200) and myrect[player_number].pos[1] in range(50,150):
+                            left_collision = False           
+                        elif  myrect[player_number].pos[0] - myrect[player_number].width / 2 < scr_size[0] and myrect[player_number].pos[0] not in range(-289,-200) and myrect[player_number].pos[1] not in range(-50,150) or  \
+                            myrect[player_number].pos[0] not in range(-200,-100) and myrect[player_number].pos[1] not in range(-50,50)  or \
+                                myrect[player_number].pos[0] not in range(-139,+151) and myrect[player_number].pos[1] not in range(0,100) or \
+                                    myrect[player_number].pos[0] not in range(+112,+200) and myrect[player_number].pos[1] not in range(50,150):
+                            left_collision = True
+                           
+                        if  myrect[player_number].pos[0] + myrect[player_number].width / 2 < scr_size[2] and myrect[player_number].pos[0] in range(-301,-214) and myrect[player_number].pos[1] in range(-50,150) or \
+                            myrect[player_number].pos[0] in range(-214,-112) and myrect[player_number].pos[1] in range(-50,50)  or \
+                                myrect[player_number].pos[0] in range(-151,+139) and myrect[player_number].pos[1] in range(0,100) or \
+                                    myrect[player_number].pos[0] in range(+100,+200) and myrect[player_number].pos[1] in range(50,150):            
+                             right_collision = False          
+                        elif myrect[player_number].pos[0] + myrect[player_number].width / 2 > scr_size[2] and myrect[player_number].pos[0] not in range(-301,-214) and myrect[player_number].pos[1] not in range(-50,150) or \
+                            myrect[player_number].pos[0] not in range(-214,-112) and myrect[player_number].pos[1] not in range(-50,50)  or \
+                                myrect[player_number].pos[0] not in range(-151,+139) and myrect[player_number].pos[1] not in range(0,100) or \
+                                    myrect[player_number].pos[0] not in range(+100,+200) and myrect[player_number].pos[1] not in range(50,150):
+                            right_collision = True
+                           
+                        if  myrect[player_number].pos[1] + myrect[player_number].height / 2 < scr_size[1] and abs(myrect[player_number].pos[1] - myline10.pos[1]) > 12 and myrect[player_number].pos[0] in range(-301,-201) or \
+                            myrect[player_number].pos[0] in range(-201,-101) and myrect[player_number].pos[1] in range(-50,38) or \
+                                myrect[player_number].pos[0] in range(-151,+151) and myrect[player_number].pos[1] in range(0,88) or \
+                                    myrect[player_number].pos[0] in range(+100,+200) and myrect[player_number].pos[1] in range(36,138):
+                            up_collision = False
+                        elif  myrect[player_number].pos[1] + myrect[player_number].height / 2 > scr_size[1] and abs(myrect[player_number].pos[1] - myline10.pos[1]) < 12 and myrect[player_number].pos[0] not in range(-301,-201) or \
+                            myrect[player_number].pos[0] not in range(-201,-101) and myrect[player_number].pos[1] not in range(-50,38) or \
+                                myrect[player_number].pos[0] not in range(-151,+151) and myrect[player_number].pos[1] not in range(0,88) or \
+                                    myrect[player_number].pos[0] not in range(+100,+200) and myrect[player_number].pos[1] not in range(36,138):
+                            up_collision = True          
+                           
+                        if  myrect[player_number].pos[1] - myrect[player_number].height / 2 > scr_size[3] and myrect[player_number].pos[0] in range(-303,-201) and myrect[player_number].pos[1] in range(-38,150) or \
+                            myrect[player_number].pos[0] in range(-201,-101) and myrect[player_number].pos[1] in range(-38,50) or \
+                                myrect[player_number].pos[0] in range(-151,+151) and myrect[player_number].pos[1] in range(12,100) or \
+                                    myrect[player_number].pos[0] in range(+100,+200) and myrect[player_number].pos[1] in range(62,150):
+                            down_collision = False
+                        elif myrect[player_number].pos[1] - myrect[player_number].height / 2 < scr_size[3] and myrect[player_number].pos[0] not in range(-303,-201) and myrect[player_number].pos[1] not in range(-38,150) or \
+                            myrect[player_number].pos[0] not in range(-201,-101) and myrect[player_number].pos[1] not in range(-38,50) or \
+                                myrect[player_number].pos[0] not in range(-151,+151) and myrect[player_number].pos[1] not in range(12,100) or\
+                                    myrect[player_number].pos[0] not in range(+100,+200) and myrect[player_number].pos[1] not in range(62,150):
+                            down_collision = True
+                            
+                       
+                        if up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                            myrect[player_number].pos = Player_Pos[player_number][-1]
+                        
+                        if Player_Move_Arr[player_number][move_number] == 1: 
+                            
+                            if up_collision == True or down_collision == True or left_collision == True or right_collision == True  or up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                                a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                                
+                                Actual_Moves[player_number].append(a)
+                                if a == 1:
+                                     myrect[player_number].pos -= (inc, 0)
+                                     move_number += 1
+                                     Player_Pos[player_number].append(myrect[player_number].pos)
+                                     
+                                if a == 2:
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 3:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 4:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                                if a == 0:
+                                    myrect[player_number].pos = Player_Pos[player_number][-5]
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                            else:
+                                    myrect[player_number].pos -= (inc, 0)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    Actual_Moves[player_number].append(Player_Move_Arr[player_number][move_number])
+                                    
+                                    
+                                    
+                                    
+                                    
+                        if Player_Move_Arr[player_number][move_number] == 2:
+                            if up_collision == True or down_collision == True or left_collision == True or right_collision == True  or up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                                a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                                Actual_Moves[player_number].append(a)
+                                if a == 1:
+                                     myrect[player_number].pos -= (inc, 0)
+                                     move_number += 1
+                                     Player_Pos[player_number].append(myrect[player_number].pos)
+                                     
+                                if a == 2:
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 3:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 4:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                                if a == 0:
+                                    myrect[player_number].pos = Player_Pos[player_number][-5]
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                            else:
+                            
+                            
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Actual_Moves[player_number].append(Player_Move_Arr[player_number][move_number])
+                            
+                        if Player_Move_Arr[player_number][move_number] == 3:
+                            if up_collision == True or down_collision == True or left_collision == True or right_collision == True  or up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                                a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                                Actual_Moves[player_number].append(a)
+                                if a == 1:
+                                     myrect[player_number].pos -= (inc, 0)
+                                     move_number += 1
+                                     Player_Pos[player_number].append(myrect[player_number].pos)
+                                     
+                                if a == 2:
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 3:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 4:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                                if a == 0:
+                                    myrect[player_number].pos = Player_Pos[player_number][-5]
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                            else:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    Actual_Moves[player_number].append(Player_Move_Arr[player_number][move_number])
+                            
+                        if Player_Move_Arr[player_number][move_number] == 4:
+                            if up_collision == True or down_collision == True or left_collision == True or right_collision == True  or up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                                a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                                Actual_Moves[player_number].append(a)
+                                if a == 1:
+                                     myrect[player_number].pos -= (inc, 0)
+                                     move_number += 1
+                                     Player_Pos[player_number].append(myrect[player_number].pos)
+                                     
+                                if a == 2:
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 3:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 4:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                                if a == 0:
+                                    myrect[player_number].pos = Player_Pos[player_number][-5]
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                            else:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    Actual_Moves[player_number].append(Player_Move_Arr[player_number][move_number])
+                        
+                        """   Random Motion 
+                        a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                        if a == 1:
+                             myrect[player_number].pos -= (inc, 0)
+                             move_number += 1
+                        if a == 2:
+                            myrect[player_number].pos += (inc, 0) 
+                            move_number += 1
+                        if a == 3:
+                            myrect[player_number].pos += (0, inc)  
+                            move_number += 1
+                        if a == 4:
+                            myrect[player_number].pos -= (0, inc)
+                            move_number += 1
+                        if a == 0:
+                            myrect[player_number].pos = (-250,100)
+                            move_number += 1
+                       # print("Down collision = " +str(down_collision))    
+                      #  print("Left collision = " +str(left_collision))  
+                      #  print("Right collision = " +str(right_collision))  
+                      #  print("Up collision = " +str(up_collision))  
+                      #  print(" ")
+                        """  
+                        
+                        """" Better end  """
+                        
+                        """ Movement Commands Start"""
+                    
+                        if keys[key.LEFT] and left_collision == False:
+                            myrect[player_number].pos -= (inc, 0)
+                        
+                        if keys[key.RIGHT] and right_collision == False:
+                            myrect[player_number].pos += (inc, 0)
+                        
+                            
+                        if keys[key.UP] and up_collision == False:
+                            myrect[player_number].pos += (0, inc)
+                        
+                        
+                        if keys[key.DOWN] and down_collision == False:
+                            myrect[player_number].pos -= (0, inc)
+                  
+                        
+                        """" Exit command  """    
+                            
+                        if keys[key.ESCAPE]:
+                            win.close()
+                            core.quit()
+                
+                        if  myrect[player_number].pos[0] in range(+198,+300) and myrect[player_number].pos[1] in range(50,150):
+                            win.close()
+                            core.quit()
+                                
+                else:
+                    
+                        Fin_pos = []
+                        Fin_movements = Player_Move_Arr
+                        
+                        for player_number in range(Player_Number):
+                            Fin_pos.append([myrect[player_number].pos[0],myrect[player_number].pos[1]])
+                        Fitness_all = []
+                        for i in range(Player_Number):
+                            Fitness_all.append(Fitness(Fin_pos[i][0], Fin_pos[i][1] ,Node_Prio    )    )
+                            
+                        Fitness_2 = np.copy(Fitness_all)
+                        Fitness_2.sort()
+                        Best_1_pos = np.where( Fitness_all == Fitness_2[0]   )
+                        Best_1_Moves = Fin_movements[Best_1_pos[0][0]]
+                        gen += 1
+        
+        
+                        
+        for pos in range(-140,140,+Speed):
+                if move_number < Move_Number  - 50 :
+                   
+                    Gen_Text = visual.TextStim(win, 'Prioritized Node Number = ' +str(gen+1),
+                                   color=(0, 0,0), colorSpace='rgb',pos=(0.0,-89.5))
+                    Gen_Text.draw()
+                    Move_Text = visual.TextStim(win, 'Move number = ' +str(move_number),
+                                   color=(0, 0,0), colorSpace='rgb',pos=(0.0,-109.5))
+                    Move_Text.draw()
+                    Move_Text2 = visual.TextStim(win, 'Maximum Moves = ' +str(Move_Number),
+                                   color=(0, 0,0), colorSpace='rgb',pos=(0.0,-129.5))
+                    Move_Text2.draw()
+                    
+                    """"  Collision Commands with enemy"""
+                    if abs(myrect[player_number].pos[0] - img1.pos[0]) < 12 and abs(myrect[player_number].pos[1] - img1.pos[1]) < 12 or abs(myrect[player_number].pos[0] - img2.pos[0]) < 12 and abs(myrect[player_number].pos[1] - img2.pos[1]) < 12 or abs(myrect[player_number].pos[0] - img3.pos[0]) < 12 and abs(myrect[player_number].pos[1] - img3.pos[1]) < 12 or abs(myrect[player_number].pos[0] - img4.pos[0]) < 12 and abs(myrect[player_number].pos[1] - img4.pos[1]) < 12:
+                        move_number += 1
+                    else:
+                        img1.pos = (pos, 13)
+                        img2.pos = (-pos, 38)
+                        img3.pos = (pos, 63)
+                        img4.pos = (-pos, 88)
+                        
+                    win.flip()
+                   
+                    """ Collision script for the player  """
+                    
+                    left_collision = False
+                    right_collision = False
+                    up_collision = False
+                    down_collision = False
+                    
+                    for player_number in range(Player_Number):
+                        
+                        if  myrect[player_number].pos[0] - myrect[player_number].width / 2 > scr_size[0] and myrect[player_number].pos[0] in range(-289,-200) and myrect[player_number].pos[1] in range(-50,150) or \
+                             myrect[player_number].pos[0] in range(-200,-100) and myrect[player_number].pos[1] in range(-50,50)  or \
+                                myrect[player_number].pos[0] in range(-139,+151) and myrect[player_number].pos[1] in range(0,100) or \
+                                 myrect[player_number].pos[0] in range(+112,+200) and myrect[player_number].pos[1] in range(50,150):
+                            left_collision = False           
+                        elif  myrect[player_number].pos[0] - myrect[player_number].width / 2 < scr_size[0] and myrect[player_number].pos[0] not in range(-289,-200) and myrect[player_number].pos[1] not in range(-50,150) or  \
+                            myrect[player_number].pos[0] not in range(-200,-100) and myrect[player_number].pos[1] not in range(-50,50)  or \
+                                myrect[player_number].pos[0] not in range(-139,+151) and myrect[player_number].pos[1] not in range(0,100) or \
+                                    myrect[player_number].pos[0] not in range(+112,+200) and myrect[player_number].pos[1] not in range(50,150):
+                            left_collision = True
+                           
+                        if  myrect[player_number].pos[0] + myrect[player_number].width / 2 < scr_size[2] and myrect[player_number].pos[0] in range(-301,-214) and myrect[player_number].pos[1] in range(-50,150) or \
+                            myrect[player_number].pos[0] in range(-214,-112) and myrect[player_number].pos[1] in range(-50,50)  or \
+                                myrect[player_number].pos[0] in range(-151,+139) and myrect[player_number].pos[1] in range(0,100) or \
+                                    myrect[player_number].pos[0] in range(+100,+200) and myrect[player_number].pos[1] in range(50,150):            
+                             right_collision = False          
+                        elif myrect[player_number].pos[0] + myrect[player_number].width / 2 > scr_size[2] and myrect[player_number].pos[0] not in range(-301,-214) and myrect[player_number].pos[1] not in range(-50,150) or \
+                            myrect[player_number].pos[0] not in range(-214,-112) and myrect[player_number].pos[1] not in range(-50,50)  or \
+                                myrect[player_number].pos[0] not in range(-151,+139) and myrect[player_number].pos[1] not in range(0,100) or \
+                                    myrect[player_number].pos[0] not in range(+100,+200) and myrect[player_number].pos[1] not in range(50,150):
+                            right_collision = True
+                           
+                        if  myrect[player_number].pos[1] + myrect[player_number].height / 2 < scr_size[1] and abs(myrect[player_number].pos[1] - myline10.pos[1]) > 12 and myrect[player_number].pos[0] in range(-301,-201) or \
+                            myrect[player_number].pos[0] in range(-201,-101) and myrect[player_number].pos[1] in range(-50,38) or \
+                                myrect[player_number].pos[0] in range(-151,+151) and myrect[player_number].pos[1] in range(0,88) or \
+                                    myrect[player_number].pos[0] in range(+100,+200) and myrect[player_number].pos[1] in range(36,138):
+                            up_collision = False
+                        elif  myrect[player_number].pos[1] + myrect[player_number].height / 2 > scr_size[1] and abs(myrect[player_number].pos[1] - myline10.pos[1]) < 12 and myrect[player_number].pos[0] not in range(-301,-201) or \
+                            myrect[player_number].pos[0] not in range(-201,-101) and myrect[player_number].pos[1] not in range(-50,38) or \
+                                myrect[player_number].pos[0] not in range(-151,+151) and myrect[player_number].pos[1] not in range(0,88) or \
+                                    myrect[player_number].pos[0] not in range(+100,+200) and myrect[player_number].pos[1] not in range(36,138):
+                            up_collision = True          
+                           
+                        if  myrect[player_number].pos[1] - myrect[player_number].height / 2 > scr_size[3] and myrect[player_number].pos[0] in range(-303,-201) and myrect[player_number].pos[1] in range(-38,150) or \
+                            myrect[player_number].pos[0] in range(-201,-101) and myrect[player_number].pos[1] in range(-38,50) or \
+                                myrect[player_number].pos[0] in range(-151,+151) and myrect[player_number].pos[1] in range(12,100) or \
+                                    myrect[player_number].pos[0] in range(+100,+200) and myrect[player_number].pos[1] in range(62,150):
+                            down_collision = False
+                        elif myrect[player_number].pos[1] - myrect[player_number].height / 2 < scr_size[3] and myrect[player_number].pos[0] not in range(-303,-201) and myrect[player_number].pos[1] not in range(-38,150) or \
+                            myrect[player_number].pos[0] not in range(-201,-101) and myrect[player_number].pos[1] not in range(-38,50) or \
+                                myrect[player_number].pos[0] not in range(-151,+151) and myrect[player_number].pos[1] not in range(12,100) or\
+                                    myrect[player_number].pos[0] not in range(+100,+200) and myrect[player_number].pos[1] not in range(62,150):
+                            down_collision = True
+                        
+                        """ Moves from Array """
+                        
+                        if Player_Move_Arr[player_number][move_number] == 1: 
+                            
+                            if up_collision == True or down_collision == True or left_collision == True or right_collision == True  or up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                                a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                                
+                                Actual_Moves[player_number].append(a)
+                                if a == 1:
+                                     myrect[player_number].pos -= (inc, 0)
+                                     move_number += 1
+                                     Player_Pos[player_number].append(myrect[player_number].pos)
+                                     
+                                if a == 2:
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 3:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 4:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                                if a == 0:
+                                    myrect[player_number].pos = Player_Pos[player_number][-5]
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                            else:
+                                    myrect[player_number].pos -= (inc, 0)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    Actual_Moves[player_number].append(Player_Move_Arr[player_number][move_number])
+                                    
+                                    
+                                    
+                                    
+                                    
+                        if Player_Move_Arr[player_number][move_number] == 2:
+                            if up_collision == True or down_collision == True or left_collision == True or right_collision == True  or up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                                a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                                Actual_Moves[player_number].append(a)
+                                if a == 1:
+                                     myrect[player_number].pos -= (inc, 0)
+                                     move_number += 1
+                                     Player_Pos[player_number].append(myrect[player_number].pos)
+                                     
+                                if a == 2:
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 3:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 4:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                                if a == 0:
+                                    myrect[player_number].pos = Player_Pos[player_number][-5]
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                            else:
+                            
+                            
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Actual_Moves[player_number].append(Player_Move_Arr[player_number][move_number])
+                            
+                        if Player_Move_Arr[player_number][move_number] == 3:
+                            if up_collision == True or down_collision == True or left_collision == True or right_collision == True  or up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                                a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                                Actual_Moves[player_number].append(a)
+                                if a == 1:
+                                     myrect[player_number].pos -= (inc, 0)
+                                     move_number += 1
+                                     Player_Pos[player_number].append(myrect[player_number].pos)
+                                     
+                                if a == 2:
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 3:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 4:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                                if a == 0:
+                                    myrect[player_number].pos = Player_Pos[player_number][-5]
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                            else:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    Actual_Moves[player_number].append(Player_Move_Arr[player_number][move_number])
+                            
+                        if Player_Move_Arr[player_number][move_number] == 4:
+                            if up_collision == True or down_collision == True or left_collision == True or right_collision == True  or up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                                a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                                Actual_Moves[player_number].append(a)
+                                if a == 1:
+                                     myrect[player_number].pos -= (inc, 0)
+                                     move_number += 1
+                                     Player_Pos[player_number].append(myrect[player_number].pos)
+                                     
+                                if a == 2:
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 3:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 4:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                                if a == 0:
+                                    myrect[player_number].pos = Player_Pos[player_number][-5]
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                            else:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    Actual_Moves[player_number].append(Player_Move_Arr[player_number][move_number])
+                                 
+                        """   Random Motion 
+                        a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                        if a == 1:
+                             myrect[player_number].pos -= (inc, 0)
+                             move_number += 1
+                        if a == 2:
+                            myrect[player_number].pos += (inc, 0) 
+                            move_number += 1
+                        if a == 3:
+                            myrect[player_number].pos += (0, inc)  
+                            move_number += 1
+                        if a == 4:
+                            myrect[player_number].pos -= (0, inc)
+                            move_number += 1
+                        if a == 0:
+                            myrect[player_number].pos = (-250,100)
+                            move_number += 1
+                       # print("Down collision = " +str(down_collision))    
+                      #  print("Left collision = " +str(left_collision))  
+                      #  print("Right collision = " +str(right_collision))  
+                      #  print("Up collision = " +str(up_collision))  
+                      #  print(" ")
+                        """  
+                        
+                        """" Better end  """
+                        
+                        """ Movement Commands Start"""
+                    
+                        if keys[key.LEFT] and left_collision == False:
+                            myrect[player_number].pos -= (inc, 0)
+                        
+                        if keys[key.RIGHT] and right_collision == False:
+                            myrect[player_number].pos += (inc, 0)
+                        
+                        if keys[key.UP] and up_collision == False:
+                            myrect[player_number].pos += (0, inc)
+                        
+                        if keys[key.DOWN] and down_collision == False:
+                            myrect[player_number].pos -= (0, inc)
+                  
+                        """" Exit command  """    
+                            
+                        if keys[key.ESCAPE]:
+                            win.close()
+                            core.quit()
+                
+                        if  myrect[player_number].pos[0] in range(+198,+300) and myrect[player_number].pos[1] in range(50,150):
+                            win.close()
+                            core.quit()
+                                
+                else:
+                    
+                        Fin_pos = []
+                        Fin_movements = Player_Move_Arr
+                        
+                        for player_number in range(Player_Number):
+                            Fin_pos.append([myrect[player_number].pos[0],myrect[player_number].pos[1]])
+                        Fitness_all = []
+                        for i in range(Player_Number):
+                            Fitness_all.append(Fitness(Fin_pos[i][0], Fin_pos[i][1],Node_Prio   )    )
+                     
+                        # Arrange in ascending order and save first two
+                        Fitness_2 = np.copy(Fitness_all)
+                        Fitness_2.sort()
+                        Best_1_pos = np.where( Fitness_all == Fitness_2[0]   )
+                        Best_1_Moves = Fin_movements[Best_1_pos[0][0]]
+                        gen += 1
+                        
+                        
+                    
+        for pos in range(140,-140,-Speed):
+                if move_number < Move_Number  - 50:
+                    
+                    Gen_Text = visual.TextStim(win, 'Prioritized Node Number = ' +str(gen+1),
+                                   color=(0, 0,0), colorSpace='rgb',pos=(0.0,-89.5))
+                    Gen_Text.draw()
+                  
+                    Move_Text = visual.TextStim(win, 'Move number = ' +str(move_number),
+                                   color=(0, 0,0), colorSpace='rgb',pos=(0.0,-109.5))
+                    Move_Text.draw()
+                    
+                    Move_Text2 = visual.TextStim(win, 'Maximum Moves = ' +str(Move_Number),
+                                   color=(0, 0,0), colorSpace='rgb',pos=(0.0,-129.5))
+                    Move_Text2.draw()
+                    
+                     #Collision Commands
+                    if abs(myrect[player_number].pos[0] - img1.pos[0]) < 12 and abs(myrect[player_number].pos[1] - img1.pos[1]) < 12 or abs(myrect[player_number].pos[0] - img2.pos[0]) < 12 and abs(myrect[player_number].pos[1] - img2.pos[1]) < 12 or abs(myrect[player_number].pos[0] - img3.pos[0]) < 12 and abs(myrect[player_number].pos[1] - img3.pos[1]) < 12 or abs(myrect[player_number].pos[0] - img4.pos[0]) < 12 and abs(myrect[player_number].pos[1] - img4.pos[1]) < 12:
+                        
+                        move_number += 1
+                        
+                    else:
+                    
+                        img1.pos = (pos, 13)
+                        img2.pos = (-pos, 38)
+                        img3.pos = (pos, 63)
+                        img4.pos = (-pos, 88)
+                            
+                
+                        win.flip()
+                   
+                    
+                    left_collision = False
+                    right_collision = False
+                    up_collision = False
+                    down_collision = False
+                    
+                    for player_number in range(Player_Number):
+                        if  myrect[player_number].pos[0] - myrect[player_number].width / 2 > scr_size[0] and myrect[player_number].pos[0] in range(-289,-200) and myrect[player_number].pos[1] in range(-50,150) or \
+                             myrect[player_number].pos[0] in range(-200,-100) and myrect[player_number].pos[1] in range(-50,50)  or \
+                                myrect[player_number].pos[0] in range(-139,+151) and myrect[player_number].pos[1] in range(0,100) or \
+                                 myrect[player_number].pos[0] in range(+112,+200) and myrect[player_number].pos[1] in range(50,150):
+                            left_collision = False           
+                        elif  myrect[player_number].pos[0] - myrect[player_number].width / 2 < scr_size[0] and myrect[player_number].pos[0] not in range(-289,-200) and myrect[player_number].pos[1] not in range(-50,150) or  \
+                            myrect[player_number].pos[0] not in range(-200,-100) and myrect[player_number].pos[1] not in range(-50,50)  or \
+                                myrect[player_number].pos[0] not in range(-139,+151) and myrect[player_number].pos[1] not in range(0,100) or \
+                                    myrect[player_number].pos[0] not in range(+112,+200) and myrect[player_number].pos[1] not in range(50,150):
+                            left_collision = True
+                           
+                        if  myrect[player_number].pos[0] + myrect[player_number].width / 2 < scr_size[2] and myrect[player_number].pos[0] in range(-301,-214) and myrect[player_number].pos[1] in range(-50,150) or \
+                            myrect[player_number].pos[0] in range(-214,-112) and myrect[player_number].pos[1] in range(-50,50)  or \
+                                myrect[player_number].pos[0] in range(-151,+139) and myrect[player_number].pos[1] in range(0,100) or \
+                                    myrect[player_number].pos[0] in range(+100,+200) and myrect[player_number].pos[1] in range(50,150):            
+                             right_collision = False          
+                        elif myrect[player_number].pos[0] + myrect[player_number].width / 2 > scr_size[2] and myrect[player_number].pos[0] not in range(-301,-214) and myrect[player_number].pos[1] not in range(-50,150) or \
+                            myrect[player_number].pos[0] not in range(-214,-112) and myrect[player_number].pos[1] not in range(-50,50)  or \
+                                myrect[player_number].pos[0] not in range(-151,+139) and myrect[player_number].pos[1] not in range(0,100) or \
+                                    myrect[player_number].pos[0] not in range(+100,+200) and myrect[player_number].pos[1] not in range(50,150):
+                            right_collision = True
+                           
+                        if  myrect[player_number].pos[1] + myrect[player_number].height / 2 < scr_size[1] and abs(myrect[player_number].pos[1] - myline10.pos[1]) > 12 and myrect[player_number].pos[0] in range(-301,-201) or \
+                            myrect[player_number].pos[0] in range(-201,-101) and myrect[player_number].pos[1] in range(-50,38) or \
+                                myrect[player_number].pos[0] in range(-151,+151) and myrect[player_number].pos[1] in range(0,88) or \
+                                    myrect[player_number].pos[0] in range(+100,+200) and myrect[player_number].pos[1] in range(36,138):
+                            up_collision = False
+                        elif  myrect[player_number].pos[1] + myrect[player_number].height / 2 > scr_size[1] and abs(myrect[player_number].pos[1] - myline10.pos[1]) < 12 and myrect[player_number].pos[0] not in range(-301,-201) or \
+                            myrect[player_number].pos[0] not in range(-201,-101) and myrect[player_number].pos[1] not in range(-50,38) or \
+                                myrect[player_number].pos[0] not in range(-151,+151) and myrect[player_number].pos[1] not in range(0,88) or \
+                                    myrect[player_number].pos[0] not in range(+100,+200) and myrect[player_number].pos[1] not in range(36,138):
+                            up_collision = True          
+                           
+                        if  myrect[player_number].pos[1] - myrect[player_number].height / 2 > scr_size[3] and myrect[player_number].pos[0] in range(-303,-201) and myrect[player_number].pos[1] in range(-38,150) or \
+                            myrect[player_number].pos[0] in range(-201,-101) and myrect[player_number].pos[1] in range(-38,50) or \
+                                myrect[player_number].pos[0] in range(-151,+151) and myrect[player_number].pos[1] in range(12,100) or \
+                                    myrect[player_number].pos[0] in range(+100,+200) and myrect[player_number].pos[1] in range(62,150):
+                            down_collision = False
+                        elif myrect[player_number].pos[1] - myrect[player_number].height / 2 < scr_size[3] and myrect[player_number].pos[0] not in range(-303,-201) and myrect[player_number].pos[1] not in range(-38,150) or \
+                            myrect[player_number].pos[0] not in range(-201,-101) and myrect[player_number].pos[1] not in range(-38,50) or \
+                                myrect[player_number].pos[0] not in range(-151,+151) and myrect[player_number].pos[1] not in range(12,100) or\
+                                    myrect[player_number].pos[0] not in range(+100,+200) and myrect[player_number].pos[1] not in range(62,150):
+                            down_collision = True
+                            
+                       
+                        if up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                            myrect[player_number].pos = Player_Pos[player_number][-1]
+                        
+                        if Player_Move_Arr[player_number][move_number] == 1: 
+                            
+                            if up_collision == True or down_collision == True or left_collision == True or right_collision == True  or up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                                a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                                
+                                Actual_Moves[player_number].append(a)
+                                if a == 1:
+                                     myrect[player_number].pos -= (inc, 0)
+                                     move_number += 1
+                                     Player_Pos[player_number].append(myrect[player_number].pos)
+                                     
+                                if a == 2:
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 3:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 4:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                                if a == 0:
+                                    myrect[player_number].pos = Player_Pos[player_number][-5]
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                            else:
+                                    myrect[player_number].pos -= (inc, 0)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    Actual_Moves[player_number].append(Player_Move_Arr[player_number][move_number])
+                                    
+                                    
+                                    
+                                    
+                                    
+                        if Player_Move_Arr[player_number][move_number] == 2:
+                            if up_collision == True or down_collision == True or left_collision == True or right_collision == True  or up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                                a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                                Actual_Moves[player_number].append(a)
+                                if a == 1:
+                                     myrect[player_number].pos -= (inc, 0)
+                                     move_number += 1
+                                     Player_Pos[player_number].append(myrect[player_number].pos)
+                                     
+                                if a == 2:
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 3:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 4:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                                if a == 0:
+                                    myrect[player_number].pos = Player_Pos[player_number][-5]
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                            else:
+                            
+                            
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Actual_Moves[player_number].append(Player_Move_Arr[player_number][move_number])
+                            
+                        if Player_Move_Arr[player_number][move_number] == 3:
+                            if up_collision == True or down_collision == True or left_collision == True or right_collision == True  or up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                                a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                                Actual_Moves[player_number].append(a)
+                                if a == 1:
+                                     myrect[player_number].pos -= (inc, 0)
+                                     move_number += 1
+                                     Player_Pos[player_number].append(myrect[player_number].pos)
+                                     
+                                if a == 2:
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 3:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 4:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                                if a == 0:
+                                    myrect[player_number].pos = Player_Pos[player_number][-5]
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                            else:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    Actual_Moves[player_number].append(Player_Move_Arr[player_number][move_number])
+                            
+                        if Player_Move_Arr[player_number][move_number] == 4:
+                            if up_collision == True or down_collision == True or left_collision == True or right_collision == True  or up_collision == True and down_collision == True and left_collision == True and right_collision == True:
+                                a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                                Actual_Moves[player_number].append(a)
+                                if a == 1:
+                                     myrect[player_number].pos -= (inc, 0)
+                                     move_number += 1
+                                     Player_Pos[player_number].append(myrect[player_number].pos)
+                                     
+                                if a == 2:
+                                    myrect[player_number].pos += (inc, 0) 
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 3:
+                                    myrect[player_number].pos += (0, inc)  
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                   
+                                if a == 4:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    
+                                if a == 0:
+                                    myrect[player_number].pos = Player_Pos[player_number][-5]
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                            else:
+                                    myrect[player_number].pos -= (0, inc)
+                                    move_number += 1
+                                    Player_Pos[player_number].append(myrect[player_number].pos)
+                                    Actual_Moves[player_number].append(Player_Move_Arr[player_number][move_number])
+                        
+                        """   Random Motion 
+                        a = Random_Motion(up_collision,down_collision,left_collision,right_collision)
+                        if a == 1:
+                             myrect[player_number].pos -= (inc, 0)
+                             move_number += 1
+                        if a == 2:
+                            myrect[player_number].pos += (inc, 0) 
+                            move_number += 1
+                        if a == 3:
+                            myrect[player_number].pos += (0, inc)  
+                            move_number += 1
+                        if a == 4:
+                            myrect[player_number].pos -= (0, inc)
+                            move_number += 1
+                        if a == 0:
+                            myrect[player_number].pos = (-250,100)
+                            move_number += 1
+                       # print("Down collision = " +str(down_collision))    
+                      #  print("Left collision = " +str(left_collision))  
+                      #  print("Right collision = " +str(right_collision))  
+                      #  print("Up collision = " +str(up_collision))  
+                      #  print(" ")
+                        """  
+                        
+                        """" Better end  """
+                        
+                        """ Movement Commands Start"""
+                    
+                        if keys[key.LEFT] and left_collision == False:
+                            myrect[player_number].pos -= (inc, 0)
+                        
+                        if keys[key.RIGHT] and right_collision == False:
+                            myrect[player_number].pos += (inc, 0)
+                        
+                            
+                        if keys[key.UP] and up_collision == False:
+                            myrect[player_number].pos += (0, inc)
+                        
+                        
+                        if keys[key.DOWN] and down_collision == False:
+                            myrect[player_number].pos -= (0, inc)
+                  
+                        
+                        """" Exit command  """    
+                            
+                        if keys[key.ESCAPE]:
+                            win.close()
+                            core.quit()
+                
+                        if  myrect[player_number].pos[0] in range(+198,+300) and myrect[player_number].pos[1] in range(50,150):
+                            win.close()
+                            core.quit()
+                                
+                else:
+                    
+                        Fin_pos = []
+                        Fin_movements = Player_Move_Arr
+                        
+                        for player_number in range(Player_Number):
+                            Fin_pos.append([myrect[player_number].pos[0],myrect[player_number].pos[1]])
+                        Fitness_all = []
+                        for i in range(Player_Number):
+                            Fitness_all.append(Fitness(Fin_pos[i][0], Fin_pos[i][1] ,Node_Prio    )    )
+                            
+                        Fitness_2 = np.copy(Fitness_all)
+                        Fitness_2.sort()
+                        Best_1_pos = np.where( Fitness_all == Fitness_2[0]   )
+                        Best_1_Moves = Fin_movements[Best_1_pos[0][0]]
+                        gen += 1
+        
+        
+        
+        return Fin_pos
+
+# Default collision values    
+left_collision = False
+right_collision = False
+up_collision = False
+down_collision = False
+
+################################
+################################
+################################
+
+# Move number to generate first random array and find the array with the best fitness value
+Move_Number = 50
+
+"""
+RANDOM ITERATION
+"""
+
+Best_Fit = []
+Fin_pos = []
+All_moves = []
+Random1 = Random_Motion_Array()
+Fitness_all = []
+
+gen = 0
+for i in range(10):
+    Moves = Random_Motion_Array()
+    All_moves.append(Moves)
+    Fin_pos.append(Move_list(gen,Moves,1,Move_Number))
+    
+for i in range(10):
+    Fitness_all.append(Fitness(Fin_pos[i][0][0], Fin_pos[i][0][1] ,3    )    )
+    
+Fitness_2 = np.copy(Fitness_all    )
+Fitness_2.sort()
+
+# Write Fitness value for the array with best fitness
+with open('Fitness.txt', 'a') as fp:
+    fp.write("%s\n" % Fitness_2[0])
+    print('Wrote Fitness to txt file')
+    
+Best_Fit.append(Fitness_2[0])
+
+# Find movement array for the best fitness array and use those as the parent for the next iteration
+Best_1_pos = np.where( Fitness_all == Fitness_2[0]   )
+Best_2_pos = np.where( Fitness_all == Fitness_2[1]  )
+Best_1_Moves = All_moves[Best_1_pos[0][0]]
+Best_2_Moves = All_moves[Best_2_pos[0][0]]
+
+New_Array = Move_Array_Fitness(Best_1_Moves, Best_2_Moves)
+
+print("Fit = " +str(Fitness_2))
+
+with open('Best_Moves' + str(gen) + ' .txt', 'a') as fp:
+    for item in Best_1_Moves[0]:
+        # write each item on a new line
+        fp.write("%s\n" % item)
+    print('Wrote Best Moves Array to txt file')
+
+################################
+################################
+################################
+
+Fin_pos = []
+All_moves = []
+Random1 = Random_Motion_Array()
+Fitness_all = []
+Fit_exp = 3
+Write = 12
+
+for i in range(10):
+    Moves = New_Array
+    All_moves.append(Moves[i])
+    Fin_pos.append(Move_list(gen,New_Array[i],1,Move_Number))
+    
+for i in range(10):
+    Fitness_all.append(Fitness(Fin_pos[i][0][0], Fin_pos[i][0][1] ,Fit_exp    )    )
+    
+Fitness_2 = np.copy(Fitness_all    )
+Fitness_2.sort()
+Best_Fit.append(Fitness_2[0])
+
+Best_1_pos = np.where( Fitness_all == Fitness_2[0]   )
+Best_2_pos = np.where( Fitness_all == Fitness_2[1]  )
+Best_1_Moves = All_moves[Best_1_pos[0][0]]
+Best_2_Moves = All_moves[Best_2_pos[0][0]]
+
+New_Array = Move_Array_Fitness(Best_1_Moves, Best_2_Moves)
+
+print("Fitness of current movement array = " +str(Fitness_2))
+
+# CHeck if last iteration had better results than this one, otherwise save this one
+
+with open('Fitness.txt', 'w') as fp:
+    fp.write("%s\n" % Fitness_2[0])
+    print('Wrote Fitness to txt file')
+    
+with open('Node.txt', 'w') as fp:
+    fp.write("%s\n" % Fit_exp)
+    print('Wrote Node Priority to txt file')
+    
+with open('Best_Moves' + str(Write) + ' .txt', 'w') as fp:
+    for item in Best_1_Moves[0]:
+        # write each item on a new line
+        fp.write("%s\n" % item)
+    print('Wrote Best Moves Array to txt file')
+
+################################
+################################
+################################
+
+def Rep(Moves_Array, gen,Fit_exp,Write,Move_Number):
+    
+    New_Array = Moves_Array
+    
+    Fin_pos = []
+    All_moves = []
+    Random1 = Random_Motion_Array()
+    Fitness_all = []
+    
+    for i in range(10):
+        Moves = New_Array
+        All_moves.append(Moves[i])
+        Fin_pos.append(Move_list(gen,New_Array[i],1,Move_Number))
+        
+    for i in range(10):
+        Fitness_all.append(Fitness(Fin_pos[i][0][0], Fin_pos[i][0][1] ,Fit_exp    )    )
+        
+    Fitness_2 = np.copy(Fitness_all    )
+    Fitness_2.sort()
+    
+    Best_Fit.append(Fitness_2[0])
+    
+    Best_1_pos = np.where( Fitness_all == Fitness_2[0]   )
+    Best_2_pos = np.where( Fitness_all == Fitness_2[1]  )
+    Best_1_Moves = All_moves[Best_1_pos[0][0]]
+    Best_2_Moves = All_moves[Best_2_pos[0][0]]
+    
+    New_Array = Move_Array_Fitness(Best_1_Moves, Best_2_Moves)
+    
+    print("Fitness of current movement array = " +str(Fitness_2))
+
+    # CHeck if last iteration had better results than this one, otherwise save this one
+    
+    Fitness_last = []
+    Node_last = []
+    
+    with open('Fitness.txt', 'r') as fp:
+        for line in fp:
+            x = float(line[:-1])
+            Fitness_last.append(x)
+    
+    
+    with open('Node.txt', 'r') as fp:
+        for line in fp:
+            x = float(line[:-1])
+            Node_last.append(x)
+            
+    print(Fitness_last[0])
+    
+    if Fitness_2[0]<Fitness_last[0] and Fit_exp >= Node_last[0]:
+    
+        with open('Fitness.txt', 'w') as fp:
+            fp.write("%s\n" % Fitness_2[0])
+            print('Wrote Fitness to txt file')
+            
+        with open('Node.txt', 'w') as fp:
+            fp.write("%s\n" % Fit_exp)
+            print('Wrote Node Priority to txt file')
+            
+            
+        with open('Best_Moves' + str(Write) + ' .txt', 'w') as fp:
+            for item in Best_1_Moves[0]:
+                # write each item on a new line
+                fp.write("%s\n" % item)
+            print('Wrote Best Moves Array to txt file')
+
+        return New_Array
+    
+    elif  Fit_exp > Node_last[0]:
+    
+        with open('Fitness.txt', 'w') as fp:
+            fp.write("%s\n" % Fitness_2[0])
+            print('Wrote Fitness to txt file')
+            
+        with open('Node.txt', 'w') as fp:
+            fp.write("%s\n" % Fit_exp)
+            print('Wrote Node Priority to txt file')
+            
+            
+        with open('Best_Moves' + str(Write) + ' .txt', 'w') as fp:
+            for item in Best_1_Moves[0]:
+                # write each item on a new line
+                fp.write("%s\n" % item)
+            print('Wrote Best Moves Array to txt file')
+
+        return New_Array
+    
+    else:
+        
+        New_Array = Moves_Array
+        return New_Array
+
+
+# Node Number 6
+Move_Number = 300
+
+# Functions to increase moves for different node priorities
+def Increase_Moves(Move_Number,Rep1):
+    
+    for i in range(Move_Number-200):
+        for j in range(10):
+            Rep1[j][0].append(random.randint(1, 4))
+    
+
+    for i in range(2):            
+        Rep1 = Rep(Rep1,5,5,1,Move_Number)
+    return Rep1
+
+def Increase_Moves6(Move_Number,Rep1):
+    
+    for i in range(Move_Number-200):
+        for j in range(10):
+            Rep1[j][0].append(random.randint(1, 4))
+    
+
+    for i in range(2):            
+        Rep1 = Rep(Rep1,6,6,1,Move_Number)
+    return Rep1
+
+def Increase_Moves7(Move_Number,Rep1):
+    
+    for i in range(Move_Number-200):
+        for j in range(10):
+            Rep1[j][0].append(random.randint(1, 4))
+    
+
+    for i in range(3):            
+        Rep1 = Rep(Rep1,7,7,1,Move_Number)
+    print("Move 123")
+    return Rep1
+
+
+# Movement array from saved file in case the simulation takes too long
+   
+lines = []
+with open('Best_Node_7_300_3.txt','r') as fd:
+    reader = csv.reader(fd)
+    for row in reader:
+        lines.append(int(row[0]))
+    
+lines_rep = []
+for i in range(10):
+    lines_rep.append([lines])
+    
+Rep1 = Rep(lines_rep,6,6,1,300)
+for i in range(10):
+    Rep1 = Rep(Rep1,6,6,1,300)
+
+
+for i in range(10):
+   Moves210 = Increase_Moves7(350,Rep1)
+
+# Compute end time of the script
+print("--- %s seconds ---" % (time.time() - start_time))
